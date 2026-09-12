@@ -1,0 +1,79 @@
+{
+  "groups": [
+    {
+      "name": "json-csv-bridge",
+      "type": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties",
+      "sourceType": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "json-csv-bridge.delimiter",
+      "type": "java.lang.Character",
+      "description": "Field delimiter used between CSV columns.",
+      "sourceType": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties",
+      "defaultValue": ","
+    },
+    {
+      "name": "json-csv-bridge.encoding",
+      "type": "java.lang.String",
+      "description": "Charset used when reading and writing CSV files and streams.",
+      "sourceType": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties",
+      "defaultValue": "UTF-8"
+    },
+    {
+      "name": "json-csv-bridge.line-terminator",
+      "type": "java.lang.String",
+      "description": "Row terminator. Use \\r\\n when the file is opened in Excel on Windows.",
+      "sourceType": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties",
+      "defaultValue": "\n"
+    },
+    {
+      "name": "json-csv-bridge.quote-char",
+      "type": "java.lang.Character",
+      "description": "Character used to quote fields that contain the delimiter, a quote or a line break.",
+      "sourceType": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties",
+      "defaultValue": "\""
+    },
+    {
+      "name": "json-csv-bridge.null-value",
+      "type": "java.lang.String",
+      "description": "Text written for null or missing values. Empty by default.",
+      "sourceType": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties",
+      "defaultValue": ""
+    },
+    {
+      "name": "json-csv-bridge.byte-order-mark",
+      "type": "java.lang.Boolean",
+      "description": "Whether to write a BOM. Turn this on when Excel garbles non-ASCII text.",
+      "sourceType": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties",
+      "defaultValue": false
+    },
+    {
+      "name": "json-csv-bridge.flatten",
+      "type": "com.jsoncsvbridge.csv.FlattenMode",
+      "description": "How nested objects and arrays are spread into columns.",
+      "sourceType": "com.jsoncsvbridge.spring.JsonCsvBridgeProperties",
+      "defaultValue": "none"
+    }
+  ],
+  "hints": [
+    {
+      "name": "json-csv-bridge.flatten",
+      "values": [
+        {
+          "value": "none",
+          "description": "Keep nested values as a JSON string in a single cell."
+        },
+        {
+          "value": "dot",
+          "description": "Join both object keys and array indices with a dot: addr.city, tags.0."
+        },
+        {
+          "value": "bracket",
+          "description": "Join object keys with a dot and array indices with brackets: addr.city, tags[0]."
+        }
+      ]
+    }
+  ]
+}

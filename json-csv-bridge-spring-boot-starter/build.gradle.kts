@@ -1,18 +1,18 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.jlleitschuh.gradle.ktlint") version "11.0.0"
+    id("org.jlleitschuh.gradle.ktlint")
+    `java-library`
     `maven-publish`
     signing
-    kotlin("jvm") version "1.9.24"
+    kotlin("jvm")
 }
 
-// group 과 version 은 gradle.properties 에서 모든 모듈이 함께 읽는다.
 val jacksonVersion: String by project
-val slf4jVersion: String by project
-val springVersion: String by project
+val springBootVersion: String by project
 val junitVersion: String by project
 val junitPlatformVersion: String by project
+val assertjVersion: String by project
 val centralRepositoryUrl: String by project
 
 java {
@@ -23,23 +23,24 @@ java {
 
 repositories {
     mavenCentral()
-    mavenLocal()
 }
 
 dependencies {
-    // 변환에 실제로 필요한 것만 런타임 의존성으로 둔다.
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
-    implementation(kotlin("reflect"))
-    implementation("org.slf4j:slf4j-api:$slf4jVersion")
+    // 코어는 루트 프로젝트다. 사용자가 별도로 추가하지 않아도 되도록 api 로 노출한다.
+    api(project(":"))
 
-    // @Component 애너테이션 용도로만 쓰므로 컴파일 시점에만 필요하다.
-    // 라이브러리 사용자에게 Spring 을 강요하지 않는다.
-    compileOnly("org.springframework:spring-context:$springVersion")
+    // 스타터를 쓰는 쪽은 이미 Spring Boot 애플리케이션이다.
+    implementation("org.springframework.boot:spring-boot-autoconfigure:$springBootVersion")
 
+    testImplementation("org.springframework.boot:spring-boot-test:$springBootVersion")
+    testImplementation("org.springframework.boot:spring-boot:$springBootVersion")
+    // ApplicationContextRunner 의 반환 타입이 AssertJ 를 요구한다.
+    testImplementation("org.assertj:assertj-core:$assertjVersion")
+    // 메타데이터 JSON 을 읽어 코드와 대조하는 테스트에 쓴다. 코어에서는 implementation 이라 전이되지 않는다.
+    testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junitPlatformVersion")
-    testRuntimeOnly("org.slf4j:slf4j-simple:$slf4jVersion")
 }
 
 tasks.withType<Test> {
@@ -78,7 +79,7 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             groupId = project.group.toString()
-            artifactId = "json-csv-bridge"
+            artifactId = project.name
             version = project.version.toString()
 
             from(components["java"])
@@ -86,8 +87,8 @@ publishing {
             artifact(tasks["javadocJar"])
 
             pom {
-                name.set("json csv bridge")
-                description.set("A library for converting JSON data to CSV format")
+                name.set("json csv bridge spring boot starter")
+                description.set("Spring Boot auto-configuration for json-csv-bridge")
                 url.set("https://github.com/hyunolike/json-csv-bridge")
 
                 licenses {
@@ -128,25 +129,18 @@ signing {
     }
 }
 
-// ktlint configuration
 ktlint {
     verbose.set(true)
     outputToConsole.set(true)
     coloredOutput.set(true)
-    reporters {
-        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
-        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.JSON)
-    }
     filter {
         exclude("**/generated/**")
+        exclude { it.file.path.contains("${File.separator}build${File.separator}") }
         include("**/kotlin/**")
     }
-
-    // 와일드카드 임포트 규칙 비활성화
     disabledRules.set(setOf("no-wildcard-imports"))
 }
 
-// `check` 는 포맷을 검증만 한다. 빌드가 소스를 고쳐 쓰지 않도록 ktlintFormat 은 걸지 않는다.
 tasks.named("check") {
     dependsOn("ktlintCheck")
 }

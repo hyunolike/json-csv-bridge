@@ -35,7 +35,7 @@
 - [[设计] 类图](https://github.com/hyunolike/json-csv-bridge/wiki/%EA%B0%9C%EB%B0%9C%EA%B8%B0%EB%A1%9D-03.-%08%ED%81%B4%EB%9E%98%EC%8A%A4-%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8%EB%9E%A8-%EC%84%A4%EA%B3%84)（韩语）
 
 ---
-## Features (7)
+## Features (8)
 - 基础。JSON 转 CSV 🚀 `已完成`
   - 同时支持 JSON 数组和单个 JSON 对象。CSV 的列顺序与输入 JSON 的键顺序一致。
 - 自定义 CSV 字段映射 ⚠️ `未完成`
@@ -43,13 +43,15 @@
 - 数据校验与清洗 🚀 `已完成`
   - 转换前校验 JSON 格式，并把嵌套对象、数组和 `null` 整理成 CSV 可以承载的形式。格式有误时抛出 `IllegalArgumentException`，并指出出错的位置。
 - CSV 格式设置 🚀 `已完成`
-  - 通过 `FormattingOptions` 指定分隔符、编码、行结束符、空值表示以及给 Excel 用的 BOM。
+  - 通过 `FormattingOptions` 指定分隔符、编码、行结束符、空值表示、给 Excel 用的 BOM，以及是否把嵌套值展开成列。
 - 数据过滤与选择性转换 🚀 `已完成`
   - 通过 `FilterCriteria` 只转换满足条件的记录。（按列过滤，也就是只导出部分字段，目前还不支持。）
 - 合并 🚀 `已完成`
   - 把多个 JSON 文档合并成一个 CSV 文件。表头是所有输入中出现过的键的并集。
 - 转换后的后处理 ⚠️ `未完成`
   - 对生成的 CSV 文件做进一步处理，例如删除列、新增列或调整列顺序。
+- CSV 转 JSON 🚀 `已完成`
+  - 反方向转换。把 CSV 读回 JSON，并还原数字、布尔值、`null` 和嵌套结构。
 
 ## Dependencies
 依赖：
@@ -59,19 +61,37 @@
 运行时依赖只有 Jackson 和 SLF4J API。**在不使用 Spring 的项目中也可以直接使用。**
 
 ## Include in your project
+已发布到 Maven Central（JitPack 仍然可用）。
+
 ```kotlin
-//Add it in your root build.gradle at the end of repositories:
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  // 只使用库本身
+  implementation("io.github.hyunolike:json-csv-bridge:2.2.0")
+
+  // 如果是 Spring Boot 应用，使用 starter（它会一并带上库）
+  implementation("io.github.hyunolike:json-csv-bridge-spring-boot-starter:2.2.0")
+}
+```
+
+<details>
+<summary>改用 JitPack</summary>
+
+```kotlin
 repositories {
   mavenCentral()
   maven { url 'https://jitpack.io' }
 }
 
-//Add the dependency
 dependencies {
-        implementation 'com.github.hyunolike:json-csv-bridge:Tag'
-        //implementation("com.github.hyunolike:json-csv-bridge:v2.0.0")
+  implementation 'com.github.hyunolike:json-csv-bridge:v2.2.0'
+  implementation 'com.github.hyunolike.json-csv-bridge:json-csv-bridge-spring-boot-starter:v2.2.0'
 }
 ```
+</details>
 
 ## Usage
 ### 示例项目 ![](https://img.shields.io/badge/spring_boot-6DB33F?style=flat&logo=springboot&logoColor=white)
@@ -79,8 +99,10 @@ dependencies {
 - 🚀[java + spring boot](https://github.com/hyunolike/json-csv-bridge/blob/develop/examples/spring-boot-java/src/main/java/com/example/springbootjava/SpringBootJavaApplication.java)
 
 ```kotlin
+import com.jsoncsvbridge.csv.FlattenMode
 import com.jsoncsvbridge.csv.FormattingOptions
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateCsv
+import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateJson
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateMergeCsv
 import com.jsoncsvbridge.filter.Condition
 import com.jsoncsvbridge.filter.FilterCriteria
@@ -147,6 +169,7 @@ val options = FormattingOptions(
     lineTerminator = "\r\n",  // 行结束符
     nullValue = "N/A",        // 空值的表示（默认：空单元格）
     byteOrderMark = true,     // Excel 中出现乱码时设为 true
+    flatten = FlattenMode.BRACKET, // 把嵌套值展开成列
 )
 
 generateCsv("json", options).createCsv(jsonInput, "csv_output/output_formatted.csv")
@@ -160,6 +183,86 @@ val creator = generateCsv("json") as JsonToCsvCreator
 creator.createCsv(jsonInput, "csv_output/output_filtered.csv", criteria)
 ```
 有多个条件时只保留全部满足（AND）的记录；没有条件时则全部转换。
+
+### 5️⃣ 展开嵌套值
+```kotlin
+val json = """[{"id": 1, "addr": {"city": "Seoul"}, "tags": ["a", "b"]}]"""
+
+generateCsv("json", FormattingOptions(flatten = FlattenMode.BRACKET)).convertToString(json)
+```
+```csv
+id,addr.city,tags[0],tags[1]
+1,Seoul,a,b
+```
+`FlattenMode.DOT` 会用点连接数组下标（`tags.0`）。默认的 `NONE` 则把嵌套值作为 JSON 字符串放在一个单元格里。
+
+### 6️⃣ 用字符串和流代替文件
+每种转换都可以输出到 `String`、`Writer`、`OutputStream` 或文件，也可以从 `String` 和 `Reader` 读取。传入的句柄不会被关闭，其生命周期仍由调用方掌握。
+
+```kotlin
+// 直接拿到字符串
+val csv: String = generateCsv("json").convertToString(jsonInput)
+
+// 不经临时文件，直接写入 HTTP 响应
+generateCsv("json").createCsv(jsonInput, response.outputStream)
+
+// 读取大文件而不把它整个放进字符串
+File("big.json").reader().use { generateCsv("json").createCsv(it, "out.csv") }
+```
+
+### 7️⃣ CSV 转 JSON
+```kotlin
+val converter = generateJson()
+
+converter.toJsonString("name,age\nJohn,30")   // [{"name":"John","age":30}]
+converter.toRecords(csv)                       // List<Map<String, Any?>>
+converter.convertFile("in.csv", "out.json")
+```
+数字、布尔值、`null` 和嵌套 JSON 单元格都会还原成原来的类型。像 `007`、`+1`、`010-1234-5678` 这类转成数字后含义会变的值仍保持字符串。若想让所有单元格都是字符串，使用 `CsvToJsonCreator(typeInference = false)`。
+
+注意 CSV 是矩形的，无法区分"没有这个键"和"值为 null"。键集合不同的记录读回后会带上所有列的并集；如果原始结构更重要，可以用 `CsvToJsonCreator(includeNullFields = false)` 去掉空的键，但原本存在的 `null` 值也会一并消失。
+
+### 8️⃣ Spring Boot
+加入 starter 后转换器会被自动装配，不需要你自己写 `@Bean`。
+
+```kotlin
+@Service
+class ReportService(
+    private val csvCreator: CsvCreator,          // JSON → CSV
+    private val converter: CsvToJsonConverter,   // CSV → JSON
+) {
+    fun export(json: String): String = csvCreator.convertToString(json)
+}
+```
+
+格式在 `application.yml` 中配置：
+
+```yaml
+json-csv-bridge:
+  delimiter: ";"
+  line-terminator: "\r\n"
+  null-value: "N/A"
+  byte-order-mark: true
+  flatten: bracket
+```
+
+`CsvCreator`、`MergeCsvCreator`、`CsvToJsonConverter`、`CsvCreatorFactory` 和
+`FormattingOptions` 都会被注册。它们都只在"没有同类型 Bean"时才生效，因此你自己声明一个
+`FormattingOptions` Bean 就能替换全局配置。
+
+核心库本身仍与 Spring 无关，只有 starter 依赖 Spring。
+
+## What's new in v2.2.0
+- 以 `io.github.hyunolike` 发布到 **Maven Central**。JitPack 仍按原有坐标工作。
+- 新增 `json-csv-bridge-spring-boot-starter` 模块：自动配置、`application.yml` 配置项，以及 IDE 自动补全。
+- 核心库没有变化，与 v2.1.0 的 API 和行为完全一致。
+
+## What's new in v2.1.0
+只有新增，v2.0.0 的行为没有变化。
+
+- 除已有的文件路径外，还可以输出到 `String`、`Writer`、`OutputStream`，并从 `Reader` 读取。
+- 新增反方向的 `CsvToJsonConverter` / `generateJson()`。
+- `FormattingOptions.flatten` 可以把嵌套对象和数组展开成列。
 
 ## Migrating to v2.0.0
 从 v1.x 升级时发生变化的行为。

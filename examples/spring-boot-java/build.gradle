@@ -14,14 +14,16 @@ java {
 }
 
 repositories {
-	maven { url 'https://jitpack.io' }
 	mavenCentral()
 }
 
 dependencies {
 	// 오픈소스 프로젝트 추가
 	// Add open-source project
-	implementation 'com.github.hyunolike:json-csv-bridge:v2.0.0'
+	implementation 'io.github.hyunolike:json-csv-bridge:2.2.0'
+
+	// Spring Boot 라면 스타터를 쓰는 방법도 있다. 변환기가 빈으로 자동 등록된다.
+	// implementation 'io.github.hyunolike:json-csv-bridge-spring-boot-starter:2.2.0'
 
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

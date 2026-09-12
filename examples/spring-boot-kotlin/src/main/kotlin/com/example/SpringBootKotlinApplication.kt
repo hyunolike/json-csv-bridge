@@ -1,7 +1,9 @@
 package com.example
 
+import com.jsoncsvbridge.csv.FlattenMode
 import com.jsoncsvbridge.csv.FormattingOptions
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateCsv
+import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateJson
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateMergeCsv
 import com.jsoncsvbridge.filter.Condition
 import com.jsoncsvbridge.filter.FilterCriteria
@@ -73,5 +75,22 @@ class CsvCreatorRunner : CommandLineRunner {
         val filteredOutputPath = outputDir.resolve("output_filtered.csv").absolutePath
         (generateCsv("json") as JsonToCsvCreator).createCsv(jsonInput, filteredOutputPath, criteria)
         println("Filtered CSV saved at: $filteredOutputPath")
+
+        // 기능5. 중첩 값을 열로 펼치기
+        val nestedInput = """
+            [
+                {"id": 1, "addr": {"city": "Seoul"}, "tags": ["a", "b"]}
+            ]
+        """
+
+        val flattened = generateCsv("json", FormattingOptions(flatten = FlattenMode.BRACKET))
+        println("Flattened CSV:\n${flattened.convertToString(nestedInput)}")
+
+        // 기능6. 파일을 거치지 않고 CSV 문자열로 받기
+        val csv = generateCsv("json").convertToString(jsonInput)
+        println("CSV as a string:\n$csv")
+
+        // 기능7. CSV 를 다시 JSON 으로 되돌리기
+        println("Back to JSON: ${generateJson().toJsonString(csv)}")
     }
 }

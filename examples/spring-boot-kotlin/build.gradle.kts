@@ -15,13 +15,16 @@ java {
 }
 repositories {
     mavenCentral()
-    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
     // 오픈소스 프로젝트 추가
     // Add open-source project
-    implementation("com.github.hyunolike:json-csv-bridge:v2.0.0")
+    implementation("io.github.hyunolike:json-csv-bridge:2.2.0")
+
+    // Spring Boot 라면 스타터를 쓰는 방법도 있다. 변환기가 빈으로 자동 등록되어
+    // generateCsv(...) 대신 CsvCreator 를 주입받아 쓸 수 있다.
+    // implementation("io.github.hyunolike:json-csv-bridge-spring-boot-starter:2.2.0")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")

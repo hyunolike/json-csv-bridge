@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonMapperBuilder
 import com.jsoncsvbridge.csv.CsvValidator
+import java.io.Reader
 
 /**
  * JSON 문자열을 CSV 로 쓸 수 있는 레코드 목록으로 검증/정제한다.
@@ -27,22 +28,27 @@ class JsonDataValidator : CsvValidator {
             .disable(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES)
             .build()
 
-    override fun validate(jsonString: String): List<Map<String, Any?>> {
-        val root =
-            try {
-                objectMapper.readTree(jsonString)
-            } catch (e: JacksonException) {
-                throw IllegalArgumentException("Invalid JSON format: ${e.originalMessage}", e)
-            }
+    override fun validate(jsonString: String): List<Map<String, Any?>> =
+        toRecords(read { objectMapper.readTree(jsonString) })
 
-        return when (root) {
+    override fun validate(reader: Reader): List<Map<String, Any?>> =
+        toRecords(read { objectMapper.readTree(reader) })
+
+    private inline fun read(parse: () -> JsonNode): JsonNode =
+        try {
+            parse()
+        } catch (e: JacksonException) {
+            throw IllegalArgumentException("Invalid JSON format: ${e.originalMessage}", e)
+        }
+
+    private fun toRecords(root: JsonNode): List<Map<String, Any?>> =
+        when (root) {
             is ArrayNode -> root.mapIndexed { index, element -> toRecord(element, index) }
             is ObjectNode -> listOf(toObject(root))
             else -> throw IllegalArgumentException(
                 "Invalid JSON format: expected a JSON array or object but was ${root.nodeType}",
             )
         }
-    }
 
     private fun toRecord(node: JsonNode, index: Int): Map<String, Any?> =
         when (node) {

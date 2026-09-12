@@ -1,8 +1,10 @@
 package com.jsoncsvbridge.factory
 
 import com.jsoncsvbridge.csv.CsvCreator
+import com.jsoncsvbridge.csv.CsvToJsonConverter
 import com.jsoncsvbridge.csv.FormattingOptions
 import com.jsoncsvbridge.csv.MergeCsvCreator
+import com.jsoncsvbridge.json.CsvToJsonCreator
 import com.jsoncsvbridge.json.JsonDataFilter
 import com.jsoncsvbridge.json.JsonDataValidator
 import com.jsoncsvbridge.json.JsonToCsvCreator
@@ -48,5 +50,11 @@ class DefaultCsvCreatorFactory(
         @JvmOverloads
         fun generateMergeCsv(options: FormattingOptions = FormattingOptions()): MergeCsvCreator =
             DefaultCsvCreatorFactory(options).createCsvCreator("mergeJson") as MergeCsvCreator
+
+        /** 반대 방향. CSV → JSON 변환기를 만든다. */
+        @JvmStatic
+        @JvmOverloads
+        fun generateJson(options: FormattingOptions = FormattingOptions()): CsvToJsonConverter =
+            CsvToJsonCreator(options)
     }
 }
