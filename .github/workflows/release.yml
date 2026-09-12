@@ -1,45 +1,115 @@
-name: Release to Maven Central
+name: Release
 
+# 릴리스 경로는 이 워크플로 하나다.
+#   - develop 에 머지되면 gradle.properties 의 version 을 보고, 아직 없는 태그면 만든다.
+#   - 태그를 직접 밀어도 같은 절차를 탄다.
+#
+# 태그 생성과 배포를 한 워크플로에 둔 이유: GITHUB_TOKEN 으로 만든 태그는 다른 워크플로를
+# 트리거하지 않는다. 태그 생성과 배포를 나누면 배포가 영영 실행되지 않는다.
 on:
   push:
+    branches:
+      - develop
     tags:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether to release
+        id: decide
+        run: |
+          set -euo pipefail
+          VERSION="$(grep -E '^version=' gradle.properties | cut -d= -f2-)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "${GITHUB_REF_TYPE:-branch}" = "tag" ]; then
+            if [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+              echo "Tag $GITHUB_REF_NAME does not match gradle.properties version $VERSION" >&2
+              exit 1
+            fi
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "create_tag=false" >> "$GITHUB_OUTPUT"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          elif git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::notice::v$VERSION is already tagged. Bump version in gradle.properties to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+            echo "create_tag=true" >> "$GITHUB_OUTPUT"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up JDK 21
+        if: steps.decide.outputs.release == 'true'
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
+        if: steps.decide.outputs.release == 'true'
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Verify the tag matches the project version
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          VERSION="$(./gradlew -q properties --property version | awk '/^version:/ {print $2}')"
-          if [ "$TAG" != "$VERSION" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match gradle.properties version $VERSION" >&2
-            exit 1
-          fi
-        if: startsWith(github.ref, 'refs/tags/')
-
-      - name: Build and test
+      - name: Lint and test
+        if: steps.decide.outputs.release == 'true'
         run: ./gradlew ktlintCheck test
 
-      - name: Publish
+      # 검사를 통과한 뒤에만 태그를 단다. 깨진 커밋에 버전이 박히지 않게.
+      - name: Create tag
+        if: steps.decide.outputs.release == 'true' && steps.decide.outputs.create_tag == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "${{ steps.decide.outputs.tag }}" -m "Release ${{ steps.decide.outputs.tag }}"
+          git push origin "${{ steps.decide.outputs.tag }}"
+
+      # JitPack 은 태그만 있으면 자체 서버에서 빌드한다. 이 요청은 그 빌드를 미리 깨워
+      # 첫 사용자가 기다리지 않게 하는 용도라, 실패해도 릴리스를 막지 않는다.
+      - name: Notify JitPack
+        if: steps.decide.outputs.release == 'true'
+        continue-on-error: true
+        run: |
+          curl -fsS -X POST \
+            "https://jitpack.io/api/builds/${{ github.repository }}/${{ steps.decide.outputs.tag }}" || true
+
+      - name: Check for publishing credentials
+        if: steps.decide.outputs.release == 'true'
+        id: credentials
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          if [ -n "${MAVEN_CENTRAL_USERNAME:-}" ] && [ -n "${SIGNING_KEY:-}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 시크릿이 아직 없으면 JitPack 릴리스만 하고 넘어간다. Central 설정이 끝나기 전까지
+      # develop 에 머지할 때마다 빨간 표시가 뜨는 것을 막는다. 설정은 RELEASING.md 참고.
+      - name: Publish to Maven Central
+        if: steps.decide.outputs.release == 'true' && steps.credentials.outputs.present == 'true'
         run: ./gradlew publishAllPublicationsToMavenCentralRepository
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+
+      - name: Report skipped publish
+        if: steps.decide.outputs.release == 'true' && steps.credentials.outputs.present != 'true'
+        run: |
+          echo "::notice::Tagged ${{ steps.decide.outputs.tag }} for JitPack. Maven Central publishing was skipped because SIGNING_KEY and MAVEN_CENTRAL_USERNAME are not set — see RELEASING.md."

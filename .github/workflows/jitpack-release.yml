@@ -1,11 +1,10 @@
 name: JitPack Release
 
+# 태그 릴리스는 release.yml 이 담당한다. 여기는 예전부터 쓰던 release 브랜치 빌드만 남긴다.
 on:
   push:
     branches:
       - release
-    tags:
-      - '*'
 
 jobs:
   build:
