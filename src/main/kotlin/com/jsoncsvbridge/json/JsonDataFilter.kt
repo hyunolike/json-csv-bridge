@@ -1,42 +1,31 @@
 package com.jsoncsvbridge.json
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.jsoncsvbridge.csv.CsvValidator
+import com.jsoncsvbridge.filter.Condition
 import com.jsoncsvbridge.filter.DataFilter
 import com.jsoncsvbridge.filter.FilterCriteria
 
-class JsonDataFilter : DataFilter {
-    private val objectMapper = ObjectMapper()
+/**
+ * 조건에 맞는 레코드만 남기는 필터.
+ *
+ * 필드 단위가 아니라 레코드 단위로 판단한다. 예를 들어 `Condition("city", "Seoul")` 은
+ * `city` 가 `Seoul` 인 레코드를 남기며, 그 레코드의 나머지 필드는 그대로 보존된다.
+ */
+class JsonDataFilter(
+    private val validator: CsvValidator = JsonDataValidator(),
+) : DataFilter {
+    private val objectMapper = jacksonObjectMapper()
 
-    override fun filter(data: String, criteria: FilterCriteria): String {
-        return when (val jsonNode = objectMapper.readTree(data)) {
-            is ObjectNode -> filterObjectNode(jsonNode, criteria)
-            is ArrayNode -> filterArrayNode(jsonNode, criteria)
-            else -> throw IllegalArgumentException("Unsupported JSON data type")
-        }
-    }
+    override fun filter(data: String, criteria: FilterCriteria): String =
+        objectMapper.writeValueAsString(filterRecords(validator.validate(data), criteria))
 
-    private fun filterObjectNode(jsonNode: ObjectNode, criteria: FilterCriteria): String {
-        val filteredNode = ObjectNode(objectMapper.nodeFactory).apply {
-            jsonNode.fields().asSequence().filter { (key, value) ->
-                criteria.conditions.any { it.field == key && it.value == value.asText() }
-            }.forEach { (key, value) ->
-                this.replace(key, value)
-            }
-        }
-        return objectMapper.writeValueAsString(filteredNode)
-    }
+    override fun filterRecords(
+        records: List<Map<String, Any?>>,
+        criteria: FilterCriteria,
+    ): List<Map<String, Any?>> =
+        if (criteria.isEmpty) records else records.filter { record -> criteria.conditions.all { record.matches(it) } }
 
-    private fun filterArrayNode(jsonNode: ArrayNode, criteria: FilterCriteria): String {
-        val filteredArray = ArrayNode(objectMapper.nodeFactory).apply {
-            jsonNode.forEach { element ->
-                if (element is ObjectNode) {
-                    val filteredElement = filterObjectNode(element, criteria)
-                    this.add(objectMapper.readTree(filteredElement))
-                }
-            }
-        }
-        return objectMapper.writeValueAsString(filteredArray)
-    }
+    private fun Map<String, Any?>.matches(condition: Condition): Boolean =
+        containsKey(condition.field) && this[condition.field]?.toString() == condition.value
 }

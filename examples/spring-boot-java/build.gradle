@@ -9,7 +9,7 @@ version = '0.0.1-SNAPSHOT'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(22)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -21,7 +21,7 @@ repositories {
 dependencies {
 	// 오픈소스 프로젝트 추가
 	// Add open-source project
-	implementation 'com.github.hyunolike:json-csv-bridge:v1.0.0'
+	implementation 'com.github.hyunolike:json-csv-bridge:v2.0.0'
 
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

@@ -11,45 +11,54 @@
   </a>
   <br />
   <a href="https://github.com/hyunolike/json-csv-bridge">
-    <img src="https://img.shields.io/badge/%EC%9D%B4%EB%84%88%EC%84%9C%ED%81%B4_1%EA%B8%B0-%EB%B0%B1%EC%97%94%ED%8A%B8%ED%8C%8C%ED%8A%B8_%EC%9E%A5%ED%98%84%ED%98%B8-ffcc8b" alt="이너서클 1기 백엔트파트 장현호" height="23">
+    <img src="https://img.shields.io/badge/%EC%9D%B4%EB%84%88%EC%84%9C%ED%81%B4_1%EA%B8%B0-%EB%B0%B1%EC%97%94%ED%8A%B8%ED%8C%8C%ED%8A%B8_%EC%9E%A5%ED%98%84%ED%98%B8-ffcc8b" alt="Inner Circle 1st, Backend Part, Hyunho Jang" height="23">
   </a>
 </p>
 
-> Inner Circle BE 1기 오픈소스 라이브러리 프로젝트 <br />
-> 백엔트파트 장현호
+<p align="center">
+  <b>English</b> ·
+  <a href="docs/README.ko.md">한국어</a> ·
+  <a href="docs/README.zh.md">简体中文</a> ·
+  <a href="docs/README.ja.md">日本語</a>
+</p>
 
-JSON에 맞춰 자동으로 CSV파일을 생성해주는 라이브러리 입니다.
+> Inner Circle BE 1st — open source library project <br />
+> Backend Part, Hyunho Jang
 
-### 🧑🏼‍🎨오픈소스 사용 모범사례 흐름도
+A library that turns JSON into CSV files.
+
+### 🧑🏼‍🎨 Open source best-practice flow
 <img width="1044" alt="image" src="https://github.com/user-attachments/assets/f49bbe60-8b2d-4a31-bacb-5b48bb87ec99">
 
-### 🧑🏼‍🌾개발 일지
-- [[설계/최종본] 클래스다이어그램](https://github.com/hyunolike/json-csv-bridge/wiki/%EA%B0%9C%EB%B0%9C%EA%B8%B0%EB%A1%9D-05.-%ED%81%B4%EB%9E%98%EC%8A%A4-%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8%EB%9E%A8-%EC%B5%9C%EC%A2%85%EB%B3%B8)
-- [[설계] 클래스다이어그램](https://github.com/hyunolike/json-csv-bridge/wiki/%EA%B0%9C%EB%B0%9C%EA%B8%B0%EB%A1%9D-03.-%08%ED%81%B4%EB%9E%98%EC%8A%A4-%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8%EB%9E%A8-%EC%84%A4%EA%B3%84)
+### 🧑🏼‍🌾 Development log
+- [[Design / Final] Class diagram](https://github.com/hyunolike/json-csv-bridge/wiki/%EA%B0%9C%EB%B0%9C%EA%B8%B0%EB%A1%9D-05.-%ED%81%B4%EB%9E%98%EC%8A%A4-%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8%EB%9E%A8-%EC%B5%9C%EC%A2%85%EB%B3%B8) (written in Korean)
+- [[Design] Class diagram](https://github.com/hyunolike/json-csv-bridge/wiki/%EA%B0%9C%EB%B0%9C%EA%B8%B0%EB%A1%9D-03.-%08%ED%81%B4%EB%9E%98%EC%8A%A4-%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8%EB%9E%A8-%EC%84%A4%EA%B3%84) (written in Korean)
 
 ---
 ## Features (7)
-- 기본. JSON 값 CSV 파일 변환 생성 🚀 `개발완료`
-- 커스텀 CSV 필드 매핑 ⚠️ `개발 미완료`
-  - 사용자가 JSON 필드를 CSV 열과 수동으로 매핑할 수 있도록 지원합니다. 예를 들어, JSON의 특정 필드를 CSV의 특정 열로 지정할 수 있습니다.
-- 데이터 검증 및 정제 ⚠️ `개발 미완료`
-  -  JSON 데이터를 CSV로 변환하기 전에 데이터 타입, 필수 필드 확인, 누락된 값 처리 등을 검증하고 정제하는 기능을 추가합니다.
-- CSV 포맷 설정 ⚠️ `개발 미완료`
-  - CSV 파일의 구분자, 인코딩 방식, 행 구분자 등의 포맷을 사용자 정의할 수 있도록 지원합니다.
-- 데이터 필터링 및 선택적 변환 ⚠️ `개발 미완료`
-  - JSON의 특정 필드만 변환하거나, 특정 조건을 만족하는 데이터만 필터링하여 변환하는 기능을 제공합니다.
-- 병합 및 합치기 🚀 `개발완료`
-  - 여러 JSON 파일을 하나의 CSV 파일로 병합하거나, JSON 데이터를 기존 CSV 파일에 추가하는 기능을 제공합니다.
-- 변환 후 후처리 작업 ⚠️ `개발 미완료`
-  - 변환 후 CSV 파일에 대해 추가적인 후처리 작업(예: 특정 열 삭제, 추가, 순서 변경)을 할 수 있는 기능을 제공합니다.
+- Basic. JSON to CSV conversion 🚀 `done`
+  - Accepts both a JSON array and a single JSON object. Column order follows the key order of the input JSON.
+- Custom CSV field mapping ⚠️ `not implemented`
+  - Lets you map JSON fields to CSV columns by hand — for example, sending a given JSON field to a given CSV column.
+- Data validation and cleansing 🚀 `done`
+  - Validates the JSON before converting and normalises nested objects, arrays and `null` into something CSV can hold. Malformed input raises an `IllegalArgumentException` that points at the offending position.
+- CSV format options 🚀 `done`
+  - `FormattingOptions` controls the delimiter, encoding, line terminator, empty-value token and the BOM for Excel.
+- Filtering and selective conversion 🚀 `done`
+  - `FilterCriteria` keeps only the records that match your conditions. (Column-level filtering — exporting only certain fields — is not supported yet.)
+- Merging 🚀 `done`
+  - Merges several JSON documents into a single CSV file. The header is the union of every key seen across the inputs.
+- Post-processing after conversion ⚠️ `not implemented`
+  - Additional work on the produced CSV file, such as dropping, adding or reordering columns.
 
 ## Dependencies
 Depends on:
 - Java 21
 - Kotlin 1.9
-- Spring Boot 3.3
 
-## Include in your project 
+The only runtime dependencies are Jackson and the SLF4J API. **The library works in projects that do not use Spring.**
+
+## Include in your project
 ```kotlin
 //Add it in your root build.gradle at the end of repositories:
 repositories {
@@ -60,25 +69,29 @@ repositories {
 //Add the dependency
 dependencies {
         implementation 'com.github.hyunolike:json-csv-bridge:Tag'
-        //implementation("com.github.hyunolike:json-csv-bridge:v1.0.0")
+        //implementation("com.github.hyunolike:json-csv-bridge:v2.0.0")
 }
 ```
 
 ## Usage
-### 예제샘플 바로가기 ![](https://img.shields.io/badge/spring_boot-6DB33F?style=flat&logo=springboot&logoColor=white)
-- 🚀[kotiln + spring boot](https://github.com/hyunolike/json-csv-bridge/blob/develop/examples/spring-boot-kotlin/src/main/kotlin/com/example/SpringBootKotlinApplication.kt)
+### Sample projects ![](https://img.shields.io/badge/spring_boot-6DB33F?style=flat&logo=springboot&logoColor=white)
+- 🚀[kotlin + spring boot](https://github.com/hyunolike/json-csv-bridge/blob/develop/examples/spring-boot-kotlin/src/main/kotlin/com/example/SpringBootKotlinApplication.kt)
 - 🚀[java + spring boot](https://github.com/hyunolike/json-csv-bridge/blob/develop/examples/spring-boot-java/src/main/java/com/example/springbootjava/SpringBootJavaApplication.java)
 
-### 1️⃣ 기본. JSON 값 CSV 파일 변환 생성
 ```kotlin
-val outputDir = File("csv_output").apply { mkdirs() }
-val jsonOutputPath = outputDir.resolve("output_json.csv").absolutePath
+import com.jsoncsvbridge.csv.FormattingOptions
+import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateCsv
+import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateMergeCsv
+import com.jsoncsvbridge.filter.Condition
+import com.jsoncsvbridge.filter.FilterCriteria
+import com.jsoncsvbridge.json.JsonToCsvCreator
+```
 
- // JSON to CSV
-// 기능1. JSON 형식 문자열 CSV 파일로 변환
-val jsonCreator = generateCsv("json") 🚀
+### 1️⃣ Basic. JSON to CSV conversion
+```kotlin
+// Feature 1. Convert a JSON string into a CSV file
+val jsonCreator = generateCsv("json")
 
-// JSON to CSV
 val jsonInput = """
     [
         {"name": "Hyunho", "age": 30, "city": "New York"},
@@ -87,16 +100,20 @@ val jsonInput = """
     ]
 """
 
-jsonCreator.createCsv(jsonInput, jsonOutputPath)
-println("JSON to CSV conversion completed. File saved at: $jsonOutputPath")
+jsonCreator.createCsv(jsonInput, "csv_output/output_json.csv")
 ```
-### 2️⃣ 병합 및 합치기
-```kotlin
-val outputDir = File("csv_output").apply { mkdirs() }
-val mergeJsonOutputPath = outputDir.resolve("output_merge_json.csv").absolutePath
+```csv
+name,age,city
+Hyunho,30,New York
+Bob,25,Los Angeles
+Charlie,35,Chicago
+```
+Parent directories of the output path are created for you.
 
- // 기능2. 2개 JSON 형식 문자열 CSV 파일로 변환
-val mergeJsonCreator = generateMergeCsv() 🚀
+### 2️⃣ Merging
+```kotlin
+// Feature 2. Convert two JSON strings into a single CSV file
+val mergeJsonCreator = generateMergeCsv()
 
 val data1 = """
     [
@@ -110,8 +127,60 @@ val data2 = """
     ]
 """
 
-mergeJsonCreator.createMergedCsv(data1, data2, mergeJsonOutputPath)
-println("Merged 2 JSON files and converted to CSV. File saved at: $mergeJsonOutputPath")
+mergeJsonCreator.createMergedCsv(data1, data2, "csv_output/output_merge_json.csv")
+
+// Three or more documents can be merged in one call
+mergeJsonCreator.createMergedCsv(listOf(data1, data2, data3), "csv_output/output_merge_all.csv")
+```
+```csv
+name,age,city,country,occupation,hobby
+John,30,New York,USA,,
+Alice,25,London,,Engineer,
+Bob,35,Paris,,,Photography
+```
+
+### 3️⃣ CSV format options
+```kotlin
+val options = FormattingOptions(
+    delimiter = ';',          // field delimiter
+    encoding = "UTF-8",       // file encoding
+    lineTerminator = "\r\n",  // row terminator
+    nullValue = "N/A",        // token for empty values (default: an empty cell)
+    byteOrderMark = true,     // set true when Excel garbles non-ASCII text
+)
+
+generateCsv("json", options).createCsv(jsonInput, "csv_output/output_formatted.csv")
+```
+
+### 4️⃣ Filtering
+```kotlin
+val criteria = FilterCriteria.of(Condition("city", "Chicago"))
+
+val creator = generateCsv("json") as JsonToCsvCreator
+creator.createCsv(jsonInput, "csv_output/output_filtered.csv", criteria)
+```
+With several conditions only the records matching all of them (AND) survive; with no conditions everything is converted.
+
+## Migrating to v2.0.0
+Behaviour that changes when you move up from v1.x.
+
+| Topic | v1.0.0 | v2.0.0 |
+| --- | --- | --- |
+| CSV column order | Hash order, so it differed from the input | Follows the key order of the input JSON |
+| Empty values | The string `NULL` | An empty cell (configurable via `FormattingOptions.nullValue`) |
+| Nested objects / arrays | Object strings such as `{c=Seoul}` | JSON strings (`{"c":"Seoul"}`) |
+| Header escaping | None — a `,` in a key broke the columns | Quoted per RFC 4180 |
+| A single JSON object as input | Threw | Converted as one record |
+| Empty input | No file written | An empty file is created |
+| `MergeCsvCreator.createCsv` | `UnsupportedOperationException` | Works as a merge of one input |
+| Spring dependency | `spring-boot-starter-web` came transitively | None (compile-time only) |
+| Logging | `println` | SLF4J (`debug` level) |
+
+The unused `CsvFormatter` parameter is gone from the `JsonToCsvCreator` constructor. If you build creators through `generateCsv` / `generateMergeCsv` rather than constructing them directly, nothing changes for you.
+
+## Contributing
+```bash
+./gradlew ktlintCheck test   # run before opening a PR (CI runs the same checks)
 ```
 
 ## Learn more about JsonCSVBridge
