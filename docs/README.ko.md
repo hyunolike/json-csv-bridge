@@ -61,19 +61,37 @@ Depends on:
 런타임 의존성은 Jackson과 SLF4J API뿐입니다. **Spring을 쓰지 않는 프로젝트에서도 그대로 사용할 수 있습니다.**
 
 ## Include in your project
+Maven Central 에 배포됩니다. (JitPack 도 계속 사용할 수 있습니다.)
+
 ```kotlin
-//Add it in your root build.gradle at the end of repositories:
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  // 라이브러리만 쓸 때
+  implementation("io.github.hyunolike:json-csv-bridge:2.2.0")
+
+  // Spring Boot 애플리케이션이라면 스타터 (라이브러리를 함께 가져옵니다)
+  implementation("io.github.hyunolike:json-csv-bridge-spring-boot-starter:2.2.0")
+}
+```
+
+<details>
+<summary>JitPack 으로 쓰기</summary>
+
+```kotlin
 repositories {
   mavenCentral()
   maven { url 'https://jitpack.io' }
 }
 
-//Add the dependency
 dependencies {
-        implementation 'com.github.hyunolike:json-csv-bridge:Tag'
-        //implementation("com.github.hyunolike:json-csv-bridge:v2.1.0")
+  implementation 'com.github.hyunolike:json-csv-bridge:v2.2.0'
+  implementation 'com.github.hyunolike.json-csv-bridge:json-csv-bridge-spring-boot-starter:v2.2.0'
 }
 ```
+</details>
 
 ## Usage
 ### 예제샘플 바로가기 ![](https://img.shields.io/badge/spring_boot-6DB33F?style=flat&logo=springboot&logoColor=white)
@@ -203,6 +221,41 @@ converter.convertFile("in.csv", "out.json")
 숫자·불리언·`null`·중첩 JSON 칸을 원래 타입으로 되살립니다. `007`, `+1`, `010-1234-5678`처럼 숫자로 바꾸면 뜻이 달라지는 값은 문자열로 남습니다. 모든 칸을 문자열로 두려면 `CsvToJsonCreator(typeInference = false)`를 쓰세요.
 
 CSV는 직사각형이라 "키가 없음"과 "값이 null"을 구분하지 못합니다. 레코드마다 키가 다르면 되읽을 때 모든 열의 합집합을 갖게 되며, 원래 모양이 더 중요하면 `CsvToJsonCreator(includeNullFields = false)`로 빈 키를 뺄 수 있습니다. 다만 원래 있던 `null` 값도 함께 사라집니다.
+
+### 8️⃣ Spring Boot
+스타터를 추가하면 변환기가 자동 설정됩니다. `@Bean` 을 직접 만들 필요가 없습니다.
+
+```kotlin
+@Service
+class ReportService(
+    private val csvCreator: CsvCreator,          // JSON → CSV
+    private val converter: CsvToJsonConverter,   // CSV → JSON
+) {
+    fun export(json: String): String = csvCreator.convertToString(json)
+}
+```
+
+포맷은 `application.yml` 에서 정합니다.
+
+```yaml
+json-csv-bridge:
+  delimiter: ";"
+  line-terminator: "\r\n"
+  null-value: "N/A"
+  byte-order-mark: true
+  flatten: bracket
+```
+
+`CsvCreator`, `MergeCsvCreator`, `CsvToJsonConverter`, `CsvCreatorFactory`,
+`FormattingOptions` 이 모두 빈으로 등록됩니다. 전부 "같은 타입의 빈이 없을 때만" 등록되므로,
+`FormattingOptions` 빈을 직접 정의하면 그쪽 설정이 전체에 적용됩니다.
+
+코어 라이브러리는 그대로 Spring 과 무관합니다. Spring 에 의존하는 것은 스타터뿐입니다.
+
+## What's new in v2.2.0
+- **Maven Central** 에 `io.github.hyunolike` 로 배포합니다. JitPack 은 기존 좌표 그대로 동작합니다.
+- `json-csv-bridge-spring-boot-starter` 모듈을 추가했습니다. 자동 설정, `application.yml` 설정 항목, IDE 자동완성을 지원합니다.
+- 코어 라이브러리는 변경이 없습니다. v2.1.0 과 API·동작이 같습니다.
 
 ## What's new in v2.1.0
 추가만 있습니다. v2.0.0의 동작이 바뀐 것은 없습니다.

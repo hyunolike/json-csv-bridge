@@ -61,19 +61,37 @@
 运行时依赖只有 Jackson 和 SLF4J API。**在不使用 Spring 的项目中也可以直接使用。**
 
 ## Include in your project
+已发布到 Maven Central（JitPack 仍然可用）。
+
 ```kotlin
-//Add it in your root build.gradle at the end of repositories:
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  // 只使用库本身
+  implementation("io.github.hyunolike:json-csv-bridge:2.2.0")
+
+  // 如果是 Spring Boot 应用，使用 starter（它会一并带上库）
+  implementation("io.github.hyunolike:json-csv-bridge-spring-boot-starter:2.2.0")
+}
+```
+
+<details>
+<summary>改用 JitPack</summary>
+
+```kotlin
 repositories {
   mavenCentral()
   maven { url 'https://jitpack.io' }
 }
 
-//Add the dependency
 dependencies {
-        implementation 'com.github.hyunolike:json-csv-bridge:Tag'
-        //implementation("com.github.hyunolike:json-csv-bridge:v2.1.0")
+  implementation 'com.github.hyunolike:json-csv-bridge:v2.2.0'
+  implementation 'com.github.hyunolike.json-csv-bridge:json-csv-bridge-spring-boot-starter:v2.2.0'
 }
 ```
+</details>
 
 ## Usage
 ### 示例项目 ![](https://img.shields.io/badge/spring_boot-6DB33F?style=flat&logo=springboot&logoColor=white)
@@ -203,6 +221,41 @@ converter.convertFile("in.csv", "out.json")
 数字、布尔值、`null` 和嵌套 JSON 单元格都会还原成原来的类型。像 `007`、`+1`、`010-1234-5678` 这类转成数字后含义会变的值仍保持字符串。若想让所有单元格都是字符串，使用 `CsvToJsonCreator(typeInference = false)`。
 
 注意 CSV 是矩形的，无法区分"没有这个键"和"值为 null"。键集合不同的记录读回后会带上所有列的并集；如果原始结构更重要，可以用 `CsvToJsonCreator(includeNullFields = false)` 去掉空的键，但原本存在的 `null` 值也会一并消失。
+
+### 8️⃣ Spring Boot
+加入 starter 后转换器会被自动装配，不需要你自己写 `@Bean`。
+
+```kotlin
+@Service
+class ReportService(
+    private val csvCreator: CsvCreator,          // JSON → CSV
+    private val converter: CsvToJsonConverter,   // CSV → JSON
+) {
+    fun export(json: String): String = csvCreator.convertToString(json)
+}
+```
+
+格式在 `application.yml` 中配置：
+
+```yaml
+json-csv-bridge:
+  delimiter: ";"
+  line-terminator: "\r\n"
+  null-value: "N/A"
+  byte-order-mark: true
+  flatten: bracket
+```
+
+`CsvCreator`、`MergeCsvCreator`、`CsvToJsonConverter`、`CsvCreatorFactory` 和
+`FormattingOptions` 都会被注册。它们都只在"没有同类型 Bean"时才生效，因此你自己声明一个
+`FormattingOptions` Bean 就能替换全局配置。
+
+核心库本身仍与 Spring 无关，只有 starter 依赖 Spring。
+
+## What's new in v2.2.0
+- 以 `io.github.hyunolike` 发布到 **Maven Central**。JitPack 仍按原有坐标工作。
+- 新增 `json-csv-bridge-spring-boot-starter` 模块：自动配置、`application.yml` 配置项，以及 IDE 自动补全。
+- 核心库没有变化，与 v2.1.0 的 API 和行为完全一致。
 
 ## What's new in v2.1.0
 只有新增，v2.0.0 的行为没有变化。

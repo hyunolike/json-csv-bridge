@@ -61,19 +61,37 @@ Depends on:
 The only runtime dependencies are Jackson and the SLF4J API. **The library works in projects that do not use Spring.**
 
 ## Include in your project
+Published on Maven Central (and still on JitPack).
+
 ```kotlin
-//Add it in your root build.gradle at the end of repositories:
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  // the library on its own
+  implementation("io.github.hyunolike:json-csv-bridge:2.2.0")
+
+  // or, in a Spring Boot application, the starter (it brings the library with it)
+  implementation("io.github.hyunolike:json-csv-bridge-spring-boot-starter:2.2.0")
+}
+```
+
+<details>
+<summary>Using JitPack instead</summary>
+
+```kotlin
 repositories {
   mavenCentral()
   maven { url 'https://jitpack.io' }
 }
 
-//Add the dependency
 dependencies {
-        implementation 'com.github.hyunolike:json-csv-bridge:Tag'
-        //implementation("com.github.hyunolike:json-csv-bridge:v2.1.0")
+  implementation 'com.github.hyunolike:json-csv-bridge:v2.2.0'
+  implementation 'com.github.hyunolike.json-csv-bridge:json-csv-bridge-spring-boot-starter:v2.2.0'
 }
 ```
+</details>
 
 ## Usage
 ### Sample projects ![](https://img.shields.io/badge/spring_boot-6DB33F?style=flat&logo=springboot&logoColor=white)
@@ -203,6 +221,41 @@ converter.convertFile("in.csv", "out.json")
 Numbers, booleans, `null` and nested JSON cells are restored to their types. Values that would change meaning as numbers — `007`, `+1`, `010-1234-5678` — stay strings. Pass `CsvToJsonCreator(typeInference = false)` to keep every cell a string.
 
 Note that CSV is rectangular, so it cannot tell "key absent" from "value is null". Records with different key sets come back holding the union of all columns; `CsvToJsonCreator(includeNullFields = false)` drops the empty ones if the original shape matters more than keeping explicit nulls.
+
+### 8️⃣ Spring Boot
+Add the starter and the converters are auto-configured — no `@Bean` of your own required.
+
+```kotlin
+@Service
+class ReportService(
+    private val csvCreator: CsvCreator,          // JSON → CSV
+    private val converter: CsvToJsonConverter,   // CSV → JSON
+) {
+    fun export(json: String): String = csvCreator.convertToString(json)
+}
+```
+
+Formatting comes from `application.yml`:
+
+```yaml
+json-csv-bridge:
+  delimiter: ";"
+  line-terminator: "\r\n"
+  null-value: "N/A"
+  byte-order-mark: true
+  flatten: bracket
+```
+
+`CsvCreator`, `MergeCsvCreator`, `CsvToJsonConverter`, `CsvCreatorFactory` and
+`FormattingOptions` are all registered. Every one is conditional on you not defining your
+own, so declaring a `FormattingOptions` bean replaces the configured one everywhere.
+
+The core library stays free of Spring — only the starter depends on it.
+
+## What's new in v2.2.0
+- Published to **Maven Central** under `io.github.hyunolike`. JitPack keeps working under the old coordinates.
+- New `json-csv-bridge-spring-boot-starter` module: auto-configuration, `application.yml` properties, and IDE completion for them.
+- The core library is unchanged — no API or behaviour differences from v2.1.0.
 
 ## What's new in v2.1.0
 Additions only — nothing from v2.0.0 changes behaviour.

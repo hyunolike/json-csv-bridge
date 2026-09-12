@@ -34,14 +34,8 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Publish to JitPack
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          echo "Publishing to JitPack for tag ${{ github.ref }}"
-          # JitPack은 GitHub에서 푸시된 태그를 자동으로 인식하므로 별도의 푸시 작업이 필요하지 않습니다.
-          # 단순히 빌드가 성공하면, JitPack에서 새로운 버전을 감지합니다.
-          # 필요시 추가 스크립트를 여기에 포함할 수 있습니다.
-
+      # JitPack 은 자체 서버에서 태그를 빌드하므로 여기서 아티팩트를 올리지 않는다.
+      # 아래 요청은 그 빌드를 미리 깨워 첫 사용자가 기다리지 않게 하는 용도다.
       - name: Notify JitPack
         if: startsWith(github.ref, 'refs/tags/')
         run: |

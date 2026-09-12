@@ -61,19 +61,37 @@ JSON を CSV ファイルに変換するライブラリです。
 ランタイム依存は Jackson と SLF4J API だけです。**Spring を使わないプロジェクトでもそのまま利用できます。**
 
 ## Include in your project
+Maven Central に公開しています（JitPack も引き続き使えます）。
+
 ```kotlin
-//Add it in your root build.gradle at the end of repositories:
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  // ライブラリ単体で使う場合
+  implementation("io.github.hyunolike:json-csv-bridge:2.2.0")
+
+  // Spring Boot アプリケーションならスターター（ライブラリも一緒に入ります）
+  implementation("io.github.hyunolike:json-csv-bridge-spring-boot-starter:2.2.0")
+}
+```
+
+<details>
+<summary>JitPack を使う場合</summary>
+
+```kotlin
 repositories {
   mavenCentral()
   maven { url 'https://jitpack.io' }
 }
 
-//Add the dependency
 dependencies {
-        implementation 'com.github.hyunolike:json-csv-bridge:Tag'
-        //implementation("com.github.hyunolike:json-csv-bridge:v2.1.0")
+  implementation 'com.github.hyunolike:json-csv-bridge:v2.2.0'
+  implementation 'com.github.hyunolike.json-csv-bridge:json-csv-bridge-spring-boot-starter:v2.2.0'
 }
 ```
+</details>
 
 ## Usage
 ### サンプルプロジェクト ![](https://img.shields.io/badge/spring_boot-6DB33F?style=flat&logo=springboot&logoColor=white)
@@ -203,6 +221,41 @@ converter.convertFile("in.csv", "out.json")
 数値・真偽値・`null`・ネストした JSON のセルは元の型に戻ります。`007`、`+1`、`010-1234-5678` のように数値へ変えると意味が変わる値は文字列のままです。すべてのセルを文字列にしたい場合は `CsvToJsonCreator(typeInference = false)` を使います。
 
 CSV は矩形なので「キーが無い」と「値が null」を区別できません。キーの集合が異なるレコードは読み戻すと全列の和集合を持ちます。元の形のほうが重要であれば `CsvToJsonCreator(includeNullFields = false)` で空のキーを落とせますが、元々あった `null` 値も一緒に消えます。
+
+### 8️⃣ Spring Boot
+スターターを追加すると変換器が自動構成されます。自分で `@Bean` を書く必要はありません。
+
+```kotlin
+@Service
+class ReportService(
+    private val csvCreator: CsvCreator,          // JSON → CSV
+    private val converter: CsvToJsonConverter,   // CSV → JSON
+) {
+    fun export(json: String): String = csvCreator.convertToString(json)
+}
+```
+
+フォーマットは `application.yml` で指定します。
+
+```yaml
+json-csv-bridge:
+  delimiter: ";"
+  line-terminator: "\r\n"
+  null-value: "N/A"
+  byte-order-mark: true
+  flatten: bracket
+```
+
+`CsvCreator`、`MergeCsvCreator`、`CsvToJsonConverter`、`CsvCreatorFactory`、
+`FormattingOptions` がすべて Bean として登録されます。いずれも「同じ型の Bean が無いときだけ」
+登録されるため、`FormattingOptions` の Bean を自分で定義すればその設定が全体に反映されます。
+
+コアライブラリは Spring に依存しないままです。Spring に依存するのはスターターだけです。
+
+## What's new in v2.2.0
+- `io.github.hyunolike` として **Maven Central** に公開しました。JitPack は従来の座標のまま動きます。
+- `json-csv-bridge-spring-boot-starter` モジュールを追加しました。自動構成、`application.yml` の設定項目、IDE 補完に対応します。
+- コアライブラリに変更はありません。v2.1.0 と API・挙動は同じです。
 
 ## What's new in v2.1.0
 追加のみで、v2.0.0 の挙動が変わったものはありません。
