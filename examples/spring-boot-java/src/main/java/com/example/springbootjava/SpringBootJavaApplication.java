@@ -1,5 +1,6 @@
 package com.example.springbootjava;
 
+import com.jsoncsvbridge.csv.FlattenMode;
 import com.jsoncsvbridge.csv.FormattingOptions;
 import com.jsoncsvbridge.filter.Condition;
 import com.jsoncsvbridge.filter.FilterCriteria;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 
 import static com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.generateCsv;
+import static com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.generateJson;
 import static com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.generateMergeCsv;
 
 @SpringBootApplication
@@ -72,5 +74,23 @@ class CsvCreatorRunner implements CommandLineRunner {
         JsonToCsvCreator creator = (JsonToCsvCreator) generateCsv("json");
         creator.createCsv(jsonInput, filteredOutputPath, criteria);
         System.out.println("Filtered CSV saved at: " + filteredOutputPath);
+
+        // 기능5. 중첩 값을 열로 펼치기
+        String nestedInput = """
+                    [
+                        {"id": 1, "addr": {"city": "Seoul"}, "tags": ["a", "b"]}
+                    ]
+                """;
+
+        FormattingOptions flatten = new FormattingOptions(
+                ',', "UTF-8", "\n", '"', "", false, FlattenMode.BRACKET);
+        System.out.println("Flattened CSV:\n" + generateCsv("json", flatten).convertToString(nestedInput));
+
+        // 기능6. 파일을 거치지 않고 CSV 문자열로 받기
+        String csv = generateCsv("json").convertToString(jsonInput);
+        System.out.println("CSV as a string:\n" + csv);
+
+        // 기능7. CSV 를 다시 JSON 으로 되돌리기
+        System.out.println("Back to JSON: " + generateJson().toJsonString(csv));
     }
 }

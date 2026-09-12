@@ -35,7 +35,7 @@ A library that turns JSON into CSV files.
 - [[Design] Class diagram](https://github.com/hyunolike/json-csv-bridge/wiki/%EA%B0%9C%EB%B0%9C%EA%B8%B0%EB%A1%9D-03.-%08%ED%81%B4%EB%9E%98%EC%8A%A4-%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8%EB%9E%A8-%EC%84%A4%EA%B3%84) (written in Korean)
 
 ---
-## Features (7)
+## Features (8)
 - Basic. JSON to CSV conversion 🚀 `done`
   - Accepts both a JSON array and a single JSON object. Column order follows the key order of the input JSON.
 - Custom CSV field mapping ⚠️ `not implemented`
@@ -43,13 +43,15 @@ A library that turns JSON into CSV files.
 - Data validation and cleansing 🚀 `done`
   - Validates the JSON before converting and normalises nested objects, arrays and `null` into something CSV can hold. Malformed input raises an `IllegalArgumentException` that points at the offending position.
 - CSV format options 🚀 `done`
-  - `FormattingOptions` controls the delimiter, encoding, line terminator, empty-value token and the BOM for Excel.
+  - `FormattingOptions` controls the delimiter, encoding, line terminator, empty-value token, the BOM for Excel, and whether nested values are flattened into columns.
 - Filtering and selective conversion 🚀 `done`
   - `FilterCriteria` keeps only the records that match your conditions. (Column-level filtering — exporting only certain fields — is not supported yet.)
 - Merging 🚀 `done`
   - Merges several JSON documents into a single CSV file. The header is the union of every key seen across the inputs.
 - Post-processing after conversion ⚠️ `not implemented`
   - Additional work on the produced CSV file, such as dropping, adding or reordering columns.
+- CSV to JSON 🚀 `done`
+  - The reverse direction. Reads a CSV back into JSON, restoring numbers, booleans, `null` and nested values.
 
 ## Dependencies
 Depends on:
@@ -69,7 +71,7 @@ repositories {
 //Add the dependency
 dependencies {
         implementation 'com.github.hyunolike:json-csv-bridge:Tag'
-        //implementation("com.github.hyunolike:json-csv-bridge:v2.0.0")
+        //implementation("com.github.hyunolike:json-csv-bridge:v2.1.0")
 }
 ```
 
@@ -79,8 +81,10 @@ dependencies {
 - 🚀[java + spring boot](https://github.com/hyunolike/json-csv-bridge/blob/develop/examples/spring-boot-java/src/main/java/com/example/springbootjava/SpringBootJavaApplication.java)
 
 ```kotlin
+import com.jsoncsvbridge.csv.FlattenMode
 import com.jsoncsvbridge.csv.FormattingOptions
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateCsv
+import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateJson
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateMergeCsv
 import com.jsoncsvbridge.filter.Condition
 import com.jsoncsvbridge.filter.FilterCriteria
@@ -147,6 +151,7 @@ val options = FormattingOptions(
     lineTerminator = "\r\n",  // row terminator
     nullValue = "N/A",        // token for empty values (default: an empty cell)
     byteOrderMark = true,     // set true when Excel garbles non-ASCII text
+    flatten = FlattenMode.BRACKET, // spread nested values into columns
 )
 
 generateCsv("json", options).createCsv(jsonInput, "csv_output/output_formatted.csv")
@@ -160,6 +165,51 @@ val creator = generateCsv("json") as JsonToCsvCreator
 creator.createCsv(jsonInput, "csv_output/output_filtered.csv", criteria)
 ```
 With several conditions only the records matching all of them (AND) survive; with no conditions everything is converted.
+
+### 5️⃣ Flattening nested values
+```kotlin
+val json = """[{"id": 1, "addr": {"city": "Seoul"}, "tags": ["a", "b"]}]"""
+
+generateCsv("json", FormattingOptions(flatten = FlattenMode.BRACKET)).convertToString(json)
+```
+```csv
+id,addr.city,tags[0],tags[1]
+1,Seoul,a,b
+```
+`FlattenMode.DOT` joins array indices with a dot (`tags.0`) instead. With the default `NONE` a nested value stays as a JSON string in a single cell.
+
+### 6️⃣ Strings and streams instead of files
+Every conversion can go to a `String`, a `Writer`, an `OutputStream` or a file, and can read from a `String` or a `Reader`. Handles you pass in are never closed — their lifetime stays yours.
+
+```kotlin
+// Straight to a string
+val csv: String = generateCsv("json").convertToString(jsonInput)
+
+// Straight into an HTTP response, no temp file
+generateCsv("json").createCsv(jsonInput, response.outputStream)
+
+// Read a large file without holding it in a String
+File("big.json").reader().use { generateCsv("json").createCsv(it, "out.csv") }
+```
+
+### 7️⃣ CSV to JSON
+```kotlin
+val converter = generateJson()
+
+converter.toJsonString("name,age\nJohn,30")   // [{"name":"John","age":30}]
+converter.toRecords(csv)                       // List<Map<String, Any?>>
+converter.convertFile("in.csv", "out.json")
+```
+Numbers, booleans, `null` and nested JSON cells are restored to their types. Values that would change meaning as numbers — `007`, `+1`, `010-1234-5678` — stay strings. Pass `CsvToJsonCreator(typeInference = false)` to keep every cell a string.
+
+Note that CSV is rectangular, so it cannot tell "key absent" from "value is null". Records with different key sets come back holding the union of all columns; `CsvToJsonCreator(includeNullFields = false)` drops the empty ones if the original shape matters more than keeping explicit nulls.
+
+## What's new in v2.1.0
+Additions only — nothing from v2.0.0 changes behaviour.
+
+- Output to a `String`, `Writer` or `OutputStream`, and input from a `Reader`, alongside the existing file paths.
+- `CsvToJsonConverter` / `generateJson()` for the reverse direction.
+- `FormattingOptions.flatten` spreads nested objects and arrays into columns.
 
 ## Migrating to v2.0.0
 Behaviour that changes when you move up from v1.x.

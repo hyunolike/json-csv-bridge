@@ -21,7 +21,7 @@ repositories {
 dependencies {
     // 오픈소스 프로젝트 추가
     // Add open-source project
-    implementation("com.github.hyunolike:json-csv-bridge:v2.0.0")
+    implementation("com.github.hyunolike:json-csv-bridge:v2.1.0")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")

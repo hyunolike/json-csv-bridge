@@ -35,7 +35,7 @@ JSON を CSV ファイルに変換するライブラリです。
 - [[設計] クラス図](https://github.com/hyunolike/json-csv-bridge/wiki/%EA%B0%9C%EB%B0%9C%EA%B8%B0%EB%A1%9D-03.-%08%ED%81%B4%EB%9E%98%EC%8A%A4-%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8%EB%9E%A8-%EC%84%A4%EA%B3%84)（韓国語）
 
 ---
-## Features (7)
+## Features (8)
 - 基本。JSON から CSV への変換 🚀 `実装済み`
   - JSON 配列と単一の JSON オブジェクトの両方を受け取ります。CSV の列順は入力 JSON のキー順をそのまま保ちます。
 - CSV フィールドのカスタムマッピング ⚠️ `未実装`
@@ -43,13 +43,15 @@ JSON を CSV ファイルに変換するライブラリです。
 - データ検証とクレンジング 🚀 `実装済み`
   - 変換前に JSON 形式を検証し、ネストしたオブジェクト・配列・`null` を CSV に書ける形へ整えます。形式が不正な場合は、どこが問題かを示す `IllegalArgumentException` を投げます。
 - CSV フォーマット設定 🚀 `実装済み`
-  - `FormattingOptions` で区切り文字、エンコーディング、改行コード、空値の表記、Excel 用の BOM を指定できます。
+  - `FormattingOptions` で区切り文字、エンコーディング、改行コード、空値の表記、Excel 用の BOM、ネストした値を列へ展開するかを指定できます。
 - データのフィルタリングと選択的変換 🚀 `実装済み`
   - `FilterCriteria` で条件を満たすレコードだけを変換します。（特定のフィールドだけを出力する列単位のフィルタリングは未対応です。）
 - マージ 🚀 `実装済み`
   - 複数の JSON ドキュメントを 1 つの CSV ファイルにまとめます。ヘッダーは全入力に現れたキーの和集合です。
 - 変換後の後処理 ⚠️ `未実装`
   - 生成した CSV ファイルに対する追加処理（列の削除・追加・並べ替えなど）を提供します。
+- CSV から JSON への変換 🚀 `実装済み`
+  - 逆方向の変換です。CSV を JSON に読み戻し、数値・真偽値・`null`・ネストした値を復元します。
 
 ## Dependencies
 依存関係:
@@ -69,7 +71,7 @@ repositories {
 //Add the dependency
 dependencies {
         implementation 'com.github.hyunolike:json-csv-bridge:Tag'
-        //implementation("com.github.hyunolike:json-csv-bridge:v2.0.0")
+        //implementation("com.github.hyunolike:json-csv-bridge:v2.1.0")
 }
 ```
 
@@ -79,8 +81,10 @@ dependencies {
 - 🚀[java + spring boot](https://github.com/hyunolike/json-csv-bridge/blob/develop/examples/spring-boot-java/src/main/java/com/example/springbootjava/SpringBootJavaApplication.java)
 
 ```kotlin
+import com.jsoncsvbridge.csv.FlattenMode
 import com.jsoncsvbridge.csv.FormattingOptions
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateCsv
+import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateJson
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateMergeCsv
 import com.jsoncsvbridge.filter.Condition
 import com.jsoncsvbridge.filter.FilterCriteria
@@ -147,6 +151,7 @@ val options = FormattingOptions(
     lineTerminator = "\r\n",  // 改行コード
     nullValue = "N/A",        // 空値の表記（デフォルト: 空セル）
     byteOrderMark = true,     // Excel で文字化けする場合は true
+    flatten = FlattenMode.BRACKET, // ネストした値を列へ展開
 )
 
 generateCsv("json", options).createCsv(jsonInput, "csv_output/output_formatted.csv")
@@ -160,6 +165,51 @@ val creator = generateCsv("json") as JsonToCsvCreator
 creator.createCsv(jsonInput, "csv_output/output_filtered.csv", criteria)
 ```
 条件が複数ある場合はすべてを満たす（AND）レコードだけが残り、条件がなければすべて変換されます。
+
+### 5️⃣ ネストした値の展開
+```kotlin
+val json = """[{"id": 1, "addr": {"city": "Seoul"}, "tags": ["a", "b"]}]"""
+
+generateCsv("json", FormattingOptions(flatten = FlattenMode.BRACKET)).convertToString(json)
+```
+```csv
+id,addr.city,tags[0],tags[1]
+1,Seoul,a,b
+```
+`FlattenMode.DOT` は配列の添字も点でつなぎます（`tags.0`）。既定の `NONE` ではネストした値が JSON 文字列として 1 つのセルに入ります。
+
+### 6️⃣ ファイルの代わりに文字列とストリームで
+すべての変換は `String`、`Writer`、`OutputStream`、ファイルのいずれにも出力でき、`String` と `Reader` のどちらからでも読み込めます。渡したハンドルは閉じないので、寿命は渡した側が持ち続けます。
+
+```kotlin
+// そのまま文字列で受け取る
+val csv: String = generateCsv("json").convertToString(jsonInput)
+
+// 一時ファイルなしで HTTP レスポンスへ直接
+generateCsv("json").createCsv(jsonInput, response.outputStream)
+
+// 大きなファイルを文字列に載せずに読む
+File("big.json").reader().use { generateCsv("json").createCsv(it, "out.csv") }
+```
+
+### 7️⃣ CSV から JSON への変換
+```kotlin
+val converter = generateJson()
+
+converter.toJsonString("name,age\nJohn,30")   // [{"name":"John","age":30}]
+converter.toRecords(csv)                       // List<Map<String, Any?>>
+converter.convertFile("in.csv", "out.json")
+```
+数値・真偽値・`null`・ネストした JSON のセルは元の型に戻ります。`007`、`+1`、`010-1234-5678` のように数値へ変えると意味が変わる値は文字列のままです。すべてのセルを文字列にしたい場合は `CsvToJsonCreator(typeInference = false)` を使います。
+
+CSV は矩形なので「キーが無い」と「値が null」を区別できません。キーの集合が異なるレコードは読み戻すと全列の和集合を持ちます。元の形のほうが重要であれば `CsvToJsonCreator(includeNullFields = false)` で空のキーを落とせますが、元々あった `null` 値も一緒に消えます。
+
+## What's new in v2.1.0
+追加のみで、v2.0.0 の挙動が変わったものはありません。
+
+- 既存のファイルパスに加えて `String`、`Writer`、`OutputStream` への出力と `Reader` からの入力に対応しました。
+- 逆方向のための `CsvToJsonConverter` / `generateJson()` を追加しました。
+- `FormattingOptions.flatten` でネストしたオブジェクトと配列を列へ展開できます。
 
 ## Migrating to v2.0.0
 v1.x から上げるときに変わる挙動です。

@@ -1,6 +1,8 @@
 package com.jsoncsvbridge;
 
 import com.jsoncsvbridge.csv.CsvCreator;
+import com.jsoncsvbridge.csv.CsvToJsonConverter;
+import com.jsoncsvbridge.csv.FlattenMode;
 import com.jsoncsvbridge.csv.FormattingOptions;
 import com.jsoncsvbridge.csv.MergeCsvCreator;
 import com.jsoncsvbridge.filter.Condition;
@@ -10,11 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 import static com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.generateCsv;
+import static com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.generateJson;
 import static com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.generateMergeCsv;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -62,6 +66,44 @@ class JavaInteropTest {
         creator.createCsv(JSON_INPUT, output.toString(), criteria);
 
         assertEquals(List.of("name,age,city", "Hyunho,30,Seoul"), Files.readAllLines(output));
+    }
+
+    @Test
+    void returnsCsvAsString() {
+        assertEquals(
+                "name,age,city\nHyunho,30,Seoul\nBob,25,Los Angeles\n",
+                generateCsv("json").convertToString(JSON_INPUT));
+    }
+
+    @Test
+    void writesToWriter() throws IOException {
+        StringWriter out = new StringWriter();
+
+        generateCsv("json").createCsv(JSON_INPUT, out);
+
+        assertEquals("name,age,city", out.toString().lines().findFirst().orElseThrow());
+    }
+
+    @Test
+    void flattensNestedValues() {
+        FormattingOptions options = new FormattingOptions(
+                ',', "UTF-8", "\n", '"', "", false, FlattenMode.BRACKET);
+
+        String csv = generateCsv("json", options)
+                .convertToString("""
+                        [{"id": 1, "addr": {"city": "Seoul"}, "tags": ["a", "b"]}]
+                        """);
+
+        assertEquals("id,addr.city,tags[0],tags[1]\n1,Seoul,a,b\n", csv);
+    }
+
+    @Test
+    void convertsCsvBackToJson() {
+        CsvToJsonConverter converter = generateJson();
+
+        assertEquals(
+                "[{\"name\":\"John\",\"age\":30}]",
+                converter.toJsonString("name,age\nJohn,30"));
     }
 
     @Test

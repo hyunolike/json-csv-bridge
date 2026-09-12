@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.jsoncsvbridge"
-version = "2.0.0"
+version = "2.1.0"
 
 val jacksonVersion = "2.17.2"
 val slf4jVersion = "2.0.13"
