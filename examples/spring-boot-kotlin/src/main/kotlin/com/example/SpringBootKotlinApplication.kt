@@ -1,7 +1,11 @@
 package com.example
 
+import com.jsoncsvbridge.csv.FormattingOptions
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateCsv
 import com.jsoncsvbridge.factory.DefaultCsvCreatorFactory.Companion.generateMergeCsv
+import com.jsoncsvbridge.filter.Condition
+import com.jsoncsvbridge.filter.FilterCriteria
+import com.jsoncsvbridge.json.JsonToCsvCreator
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -18,15 +22,9 @@ fun main(args: Array<String>) {
 @Component
 class CsvCreatorRunner : CommandLineRunner {
     override fun run(vararg args: String) {
-        val outputDir = File("csv_output").apply { mkdirs() }
-        val jsonOutputPath = outputDir.resolve("output_json.csv").absolutePath
-        val mergeJsonOutputPath = outputDir.resolve("output_merge_json.csv").absolutePath
+        val outputDir = File("csv_output")
 
-        // JSON to CSV
-        // 기능1. JSON 형식 문자열 CSV 파일로 변환
-        val jsonCreator = generateCsv("json")
-
-        // JSON to CSV
+        // 기능1. JSON 형식 문자열을 CSV 파일로 변환
         val jsonInput = """
             [
                 {"name": "Hyunho", "age": 30, "city": "New York"},
@@ -35,12 +33,11 @@ class CsvCreatorRunner : CommandLineRunner {
             ]
         """
 
-        jsonCreator.createCsv(jsonInput, jsonOutputPath)
+        val jsonOutputPath = outputDir.resolve("output_json.csv").absolutePath
+        generateCsv("json").createCsv(jsonInput, jsonOutputPath)
         println("JSON to CSV conversion completed. File saved at: $jsonOutputPath")
 
-        // 기능2. 2개 JSON 형식 문자열 CSV 파일로 변환
-        val mergeJsonCreator = generateMergeCsv()
-
+        // 기능2. 2개 JSON 형식 문자열을 CSV 파일 하나로 병합
         val data1 = """
             [
                 {"name": "John", "age": 30, "city": "New York", "country": "USA"}
@@ -53,7 +50,28 @@ class CsvCreatorRunner : CommandLineRunner {
             ]
         """
 
-        mergeJsonCreator.createMergedCsv(data1, data2, mergeJsonOutputPath)
+        val mergeJsonOutputPath = outputDir.resolve("output_merge_json.csv").absolutePath
+        generateMergeCsv().createMergedCsv(data1, data2, mergeJsonOutputPath)
         println("Merged 2 JSON files and converted to CSV. File saved at: $mergeJsonOutputPath")
+
+        // 기능3. CSV 포맷 지정 (구분자, 행 구분자, 빈 값 표기, Excel 용 BOM)
+        val options =
+            FormattingOptions(
+                delimiter = ';',
+                lineTerminator = "\r\n",
+                nullValue = "N/A",
+                byteOrderMark = true,
+            )
+
+        val formattedOutputPath = outputDir.resolve("output_formatted.csv").absolutePath
+        generateCsv("json", options).createCsv(jsonInput, formattedOutputPath)
+        println("Formatted CSV saved at: $formattedOutputPath")
+
+        // 기능4. 조건에 맞는 레코드만 변환
+        val criteria = FilterCriteria.of(Condition("city", "Chicago"))
+
+        val filteredOutputPath = outputDir.resolve("output_filtered.csv").absolutePath
+        (generateCsv("json") as JsonToCsvCreator).createCsv(jsonInput, filteredOutputPath, criteria)
+        println("Filtered CSV saved at: $filteredOutputPath")
     }
 }

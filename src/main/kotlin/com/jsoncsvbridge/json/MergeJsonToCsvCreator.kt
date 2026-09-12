@@ -1,23 +1,25 @@
 package com.jsoncsvbridge.json
 
+import com.jsoncsvbridge.csv.CsvWriter
 import com.jsoncsvbridge.csv.MergeCsvCreator
 
+/**
+ * 여러 JSON 문서를 하나의 CSV 파일로 병합한다.
+ *
+ * 헤더는 모든 입력에 등장한 키의 합집합이고, 어떤 레코드에 없는 키는
+ * [com.jsoncsvbridge.csv.FormattingOptions.nullValue] 로 채운다.
+ */
 class MergeJsonToCsvCreator(
     private val records: MergeJsonRecords,
-    private val validate: JsonDataValidator,
-    private val writer: JsonToCsvDataWriter
+    private val writer: CsvWriter,
 ) : MergeCsvCreator {
-    override fun createCsv(data: String, outputPath: String) {
-        throw UnsupportedOperationException("Use createMergedCsv for merging JSON data")
-    }
+    /** 입력이 하나뿐인 병합. 단일 JSON 변환과 결과가 같다. */
+    override fun createCsv(data: String, outputPath: String) = createMergedCsv(listOf(data), outputPath)
 
-    override fun createMergedCsv(data1: String, data2: String, outputPath: String) {
-        try {
-            val allRecords = records.combine(listOf(data1, data2))
+    override fun createMergedCsv(data1: String, data2: String, outputPath: String) =
+        createMergedCsv(listOf(data1, data2), outputPath)
 
-            writer.write(validate.validate(allRecords.toString()), outputPath)
-        } catch (e: Exception) {
-            throw e
-        }
+    override fun createMergedCsv(data: List<String>, outputPath: String) {
+        writer.write(records.combineRecords(data), outputPath)
     }
 }

@@ -1,16 +1,19 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "3.3.2" apply false
-    id("io.spring.dependency-management") version "1.1.6"
     id("org.jlleitschuh.gradle.ktlint") version "11.0.0"
     `maven-publish`
     kotlin("jvm") version "1.9.24"
-    kotlin("plugin.spring") version "1.9.24"
 }
 
 group = "com.jsoncsvbridge"
-version = "1.0.0"
+version = "2.0.0"
+
+val jacksonVersion = "2.17.2"
+val slf4jVersion = "2.0.13"
+val springVersion = "6.1.11"
+val junitVersion = "5.10.3"
+val junitPlatformVersion = "1.10.3"
 
 java {
     toolchain {
@@ -24,24 +27,23 @@ repositories {
 }
 
 dependencies {
-    implementation("org.json:json:20240303")
-    implementation("org.springframework.boot:spring-boot-starter-web:3.3.2")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    // 변환에 실제로 필요한 것만 런타임 의존성으로 둔다.
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+    implementation(kotlin("reflect"))
+    implementation("org.slf4j:slf4j-api:$slf4jVersion")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // @Component 애너테이션 용도로만 쓰므로 컴파일 시점에만 필요하다.
+    // 라이브러리 사용자에게 Spring 을 강요하지 않는다.
+    compileOnly("org.springframework:spring-context:$springVersion")
+
+    testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junitPlatformVersion")
+    testRuntimeOnly("org.slf4j:slf4j-simple:$slf4jVersion")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
-}
-
-dependencyManagement {
-    imports {
-        mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
-    }
 }
 
 tasks.withType<KotlinCompile> {
@@ -64,9 +66,9 @@ tasks.register<Jar>("javadocJar") {
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
-            groupId = "com.jsoncsvbridge"
+            groupId = project.group.toString()
             artifactId = "json-csv-bridge"
-            version = "1.0.0"
+            version = project.version.toString()
 
             from(components["java"])
             artifact(tasks["sourcesJar"])
@@ -120,12 +122,7 @@ ktlint {
     disabledRules.set(setOf("no-wildcard-imports"))
 }
 
-// Optional: Add ktlint check to check task
+// `check` 는 포맷을 검증만 한다. 빌드가 소스를 고쳐 쓰지 않도록 ktlintFormat 은 걸지 않는다.
 tasks.named("check") {
     dependsOn("ktlintCheck")
-}
-
-// Optional: Add ktlint format to build task
-tasks.named("build") {
-    dependsOn("ktlintFormat")
 }
